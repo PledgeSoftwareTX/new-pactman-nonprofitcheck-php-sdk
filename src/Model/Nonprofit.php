@@ -39,7 +39,7 @@ namespace Pactman\NonprofitCheckPlus\Model;
  * @property-read string|null $pub78_source_org_type_1
  * @property-read string|null $pub78_source_org_type_2
  * @property-read string|null $pub78_source_org_type_3
- * @property-read list<array<string, mixed>>|null $organization_types Publication 78 deductibility entries.
+ * @property-read list<array<string, mixed>|null>|null $organization_types Publication 78 deductibility entries.
  * @property-read string|null $most_recent_pub78
  * @property-read string|null $bmf_church_message
  * @property-read string|null $bmf_organization_name
@@ -81,6 +81,11 @@ final class Nonprofit extends DataObject
      * added. Returns an empty list when the field was absent or null, so it is
      * always safe to iterate; ask `has('organization_types')` when the
      * difference matters.
+     *
+     * The API can also send a null in the list, for a Publication 78 row it
+     * cannot resolve. Those are dropped rather than handed on, so every entry
+     * this returns is an array and the indices are renumbered from zero — read
+     * `get('organization_types')` when the gaps themselves matter.
      *
      * @return list<array<string, mixed>>
      */

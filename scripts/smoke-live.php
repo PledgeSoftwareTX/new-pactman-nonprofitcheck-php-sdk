@@ -332,17 +332,26 @@ foreach (['single', 'bulk'] as $kind) {
     /** @var array<string, string> $before */
     $before = $recorded['signature'];
 
-    $drift = [
-        ...Contract::schemaDiff($before, $signature),
-        ...Contract::typeDiff($before, $signature),
-    ];
+    // Strict in both directions on the shape, and silent on the part a
+    // recording has no standing to judge: whether a nullable field happened to
+    // carry a value, and the paths under a parent that arrived null. Those
+    // differ between two green runs against the same unchanged deployment. The
+    // counts are printed either way, so nothing is hidden.
+    $baseline = Contract::baselineDiff($before, $signature);
+    $drift = $baseline['changes'];
 
     $report(
         $kind,
         'recording',
         $drift === [] ? 'pass' : 'fail',
         $drift === []
-            ? "{$paths} paths, identical to the recording"
+            ? sprintf(
+                '%d paths, matching the recording · %d differ only in whether a value arrived '
+                    . '· %d under a null or empty parent',
+                $paths,
+                $baseline['nullable'],
+                $baseline['unreachable'],
+            )
             : sprintf(
                 'the live %s response no longer matches the recording made from %s on %s — %s',
                 $kind,

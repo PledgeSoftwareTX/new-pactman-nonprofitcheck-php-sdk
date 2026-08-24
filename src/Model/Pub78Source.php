@@ -17,7 +17,7 @@ namespace Pactman\NonprofitCheckPlus\Model;
  * @property-read string|null $source_org_type_1
  * @property-read string|null $source_org_type_2
  * @property-read string|null $source_org_type_3
- * @property-read list<array<string, mixed>>|null $organization_types
+ * @property-read list<array<string, mixed>|null>|null $organization_types
  * @property-read string|null $most_recent
  */
 final class Pub78Source extends SourceView

@@ -274,6 +274,118 @@ final class Contract
     }
 
     /**
+     * The recording held against a live response, with the differences a
+     * recording cannot speak to left out.
+     *
+     * A baseline is one organization's response on one afternoon, so much of
+     * what separates it from today's run is not the API moving — it is a
+     * different subject, or the same subject whose Pub 78 row lapsed since. Two
+     * kinds of difference fall out of that, and neither is drift.
+     *
+     * Nullability. `pub78_city` was `text` when the recording was made and is
+     * `null` now. The field is still there and still declared nullable; this
+     * organization simply has no Pub 78 city. Only a move between two forms a
+     * value actually took — `digits:9` to `text` — says the API changed.
+     *
+     * Reachability. `organization_types` arrived null, so the paths beneath it
+     * had nowhere to be and read as removed. {@see coverageDiff()} already
+     * excuses that against the contract; a recording needs it in both
+     * directions, because which side has the populated parent is an accident of
+     * which ran first.
+     *
+     * Both are counted rather than dropped, so a green run still says how much
+     * it passed over. What the recording cannot answer, the contract checks do:
+     * a field that must not be null is declared that way in
+     * `src/response-contract.json`, and {@see contractDiff()} fails on it there.
+     *
+     * @param array<string, string> $before
+     * @param array<string, string> $current
+     *
+     * @return array{changes: list<array{kind: string, path: string, token?: string, from?: string, to?: string}>, nullable: int, unreachable: int}
+     */
+    public static function baselineDiff(array $before, array $current): array
+    {
+        $changes = [];
+        $nullable = 0;
+        $unreachable = 0;
+
+        foreach ($before as $path => $token) {
+            if (array_key_exists($path, $current)) {
+                if ($current[$path] === $token) {
+                    continue;
+                }
+
+                if (self::nullabilityOnly($token, $current[$path])) {
+                    ++$nullable;
+
+                    continue;
+                }
+
+                $changes[] = ['kind' => 'changed', 'path' => $path, 'from' => $token, 'to' => $current[$path]];
+
+                continue;
+            }
+
+            if (self::unreachableIn($path, $current)) {
+                ++$unreachable;
+
+                continue;
+            }
+
+            $changes[] = ['kind' => 'removed', 'path' => $path, 'token' => $token];
+        }
+
+        foreach ($current as $path => $token) {
+            if (array_key_exists($path, $before)) {
+                continue;
+            }
+
+            if (self::unreachableIn($path, $before)) {
+                ++$unreachable;
+
+                continue;
+            }
+
+            $changes[] = ['kind' => 'added', 'path' => $path, 'token' => $token];
+        }
+
+        return [
+            'changes' => self::sortChanges($changes),
+            'nullable' => $nullable,
+            'unreachable' => $unreachable,
+        ];
+    }
+
+    /**
+     * Whether two tokens differ only over whether a value arrived.
+     *
+     * Drop `null` from both sides and compare what is left. `date` against
+     * `date|null` leaves the same form on each. `date` against `null` leaves one
+     * side with nothing, and a side that recorded no form makes no claim about
+     * the form — so there is nothing there to have moved. `digits:9` against
+     * `text` leaves two different forms, which is drift and stays reported.
+     */
+    private static function nullabilityOnly(string $before, string $after): bool
+    {
+        $left = self::withoutNull($before);
+        $right = self::withoutNull($after);
+
+        return $left === [] || $right === [] || $left === $right;
+    }
+
+    /**
+     * A token's forms, in the order signatures store them, with `null` dropped.
+     *
+     * @return list<string>
+     */
+    private static function withoutNull(string $token): array
+    {
+        return array_values(
+            array_filter(explode('|', $token), static fn (string $one): bool => $one !== 'null'),
+        );
+    }
+
+    /**
      * Removals first: a field that disappeared breaks callers that read it.
      *
      * @param list<array{kind: string, path: string, token?: string, from?: string, to?: string}> $changes
@@ -352,7 +464,11 @@ final class Contract
             $expected["{$prefix}{$field}"] = $token;
         }
 
-        $expected["{$prefix}organization_types[]"] = 'object';
+        // Nullable elements, not just a nullable array: the API sends a null in
+        // the list where Publication 78 has a deductibility row it cannot
+        // resolve, so a caller reading the first entry has to check. The
+        // `@property-read` list on `Nonprofit` says the same thing.
+        $expected["{$prefix}organization_types[]"] = 'null|object';
 
         /** @var array<string, string> $organizationType */
         $organizationType = $contract['organizationType'];
@@ -551,18 +667,17 @@ final class Contract
     /**
      * One line per change, indented to sit under the line it explains.
      *
+     * Every change, with nothing elided. A run that says a field moved and then
+     * hides which one sends you back to the deployment to find out by hand, and
+     * the list is only long when something large moved — which is exactly when
+     * the whole of it is what you need.
+     *
      * @param list<array{kind: string, path: string, token?: string, from?: string, to?: string}> $changes
      */
-    public static function formatChanges(array $changes, string $indent = '      ', int $limit = 12): string
+    public static function formatChanges(array $changes, string $indent = '      '): string
     {
         $lines = array_map(self::describe(...), $changes);
-        $shown = \array_slice($lines, 0, $limit);
-        $hidden = \count($lines) - \count($shown);
 
-        if ($hidden > 0) {
-            $shown[] = "… and {$hidden} more";
-        }
-
-        return implode("\n", array_map(static fn (string $line): string => $indent . $line, $shown));
+        return implode("\n", array_map(static fn (string $line): string => $indent . $line, $lines));
     }
 }

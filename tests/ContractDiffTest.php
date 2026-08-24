@@ -192,6 +192,115 @@ final class ContractDiffTest extends TestCase
         self::assertSame([], Contract::typeDiff(self::recorded(), self::recorded()));
     }
 
+    /**
+     * One organization, recorded on an afternoon its Pub 78 row was populated.
+     *
+     * @return array<string, string>
+     */
+    private static function populated(): array
+    {
+        return [
+            'code' => 'number',
+            'data.ein' => 'digits:9',
+            'data.pub78_city' => 'text',
+            'data.organization_types' => 'array',
+            'data.organization_types[]' => 'object',
+            'data.organization_types[].organization_type' => 'text',
+            'errors' => 'null',
+        ];
+    }
+
+    public function testTheBaselinePassesASubjectWhoseNullableFieldsCameBackEmpty(): void
+    {
+        $now = [
+            'code' => 'number',
+            'data.ein' => 'digits:9',
+            'data.pub78_city' => 'null',
+            'data.organization_types' => 'null',
+            'errors' => 'null',
+        ];
+
+        $result = Contract::baselineDiff(self::populated(), $now);
+
+        self::assertSame([], $result['changes']);
+        self::assertSame(2, $result['nullable']);
+        // organization_types[] and the one field under it.
+        self::assertSame(2, $result['unreachable']);
+    }
+
+    public function testTheBaselinePassesAFieldThatFilledInSinceTheRecording(): void
+    {
+        $result = Contract::baselineDiff(['data.pub78_city' => 'null'], ['data.pub78_city' => 'text']);
+
+        self::assertSame([], $result['changes']);
+        self::assertSame(1, $result['nullable']);
+    }
+
+    public function testTheBaselinePassesATokenThatOnlyGainedOrLostNull(): void
+    {
+        $result = Contract::baselineDiff(
+            ['data[].address_line2' => 'digits:4|null'],
+            ['data[].address_line2' => 'digits:4'],
+        );
+
+        self::assertSame([], $result['changes']);
+        self::assertSame(1, $result['nullable']);
+    }
+
+    public function testTheBaselinePassesPathsUnderAParentThatWasNullWhenRecorded(): void
+    {
+        $result = Contract::baselineDiff(
+            ['errors' => 'null'],
+            ['errors' => 'array', 'errors[]' => 'object', 'errors[].code' => 'number'],
+        );
+
+        self::assertSame([], $result['changes']);
+        self::assertSame(2, $result['unreachable']);
+    }
+
+    public function testTheBaselineStillFailsAFormThatMovedBetweenTwoRealForms(): void
+    {
+        $result = Contract::baselineDiff(['data.ein' => 'digits:9'], ['data.ein' => 'text']);
+
+        self::assertSame(
+            [['kind' => 'changed', 'path' => 'data.ein', 'from' => 'digits:9', 'to' => 'text']],
+            $result['changes'],
+        );
+        self::assertSame(0, $result['nullable']);
+    }
+
+    public function testTheBaselineStillFailsAFormThatMovedWhileAlsoTurningNullable(): void
+    {
+        $result = Contract::baselineDiff(['data.ein' => 'digits:9'], ['data.ein' => 'null|text']);
+
+        self::assertSame(
+            [['kind' => 'changed', 'path' => 'data.ein', 'from' => 'digits:9', 'to' => 'null|text']],
+            $result['changes'],
+        );
+    }
+
+    public function testTheBaselineStillFailsAFieldThatVanishedWhileItsParentWasThere(): void
+    {
+        $now = self::populated();
+
+        unset($now['data.ein']);
+
+        self::assertSame(
+            [['kind' => 'removed', 'path' => 'data.ein', 'token' => 'digits:9']],
+            Contract::baselineDiff(self::populated(), $now)['changes'],
+        );
+    }
+
+    public function testTheBaselineStillFailsAFieldTheApiInvented(): void
+    {
+        $result = Contract::baselineDiff(self::populated(), [...self::populated(), 'data.county' => 'text']);
+
+        self::assertSame(
+            [['kind' => 'added', 'path' => 'data.county', 'token' => 'text']],
+            $result['changes'],
+        );
+    }
+
     public function testComposeExpectedDescribesTheRecordUnderDataAndDataList(): void
     {
         $contract = [
@@ -208,6 +317,22 @@ final class ContractDiffTest extends TestCase
         self::assertSame('digits:9|null', $bulk['data[].ein']);
         self::assertSame('null|object', $single['data']);
         self::assertSame('array|null', $bulk['data']);
+    }
+
+    public function testComposeExpectedLetsAnElementOfOrganizationTypesBeNull(): void
+    {
+        $contract = [
+            'envelope' => [],
+            'errorDetail' => [],
+            'nonprofit' => [],
+            'organizationType' => ['organization_type' => 'null|string'],
+        ];
+
+        $single = Contract::composeExpected($contract, 'single');
+        $bulk = Contract::composeExpected($contract, 'bulk');
+
+        self::assertSame('null|object', $single['data.organization_types[]']);
+        self::assertSame('null|object', $bulk['data[].organization_types[]']);
     }
 
     public function testPermitsTreatsStringAsAWildcardOverEveryStringForm(): void
