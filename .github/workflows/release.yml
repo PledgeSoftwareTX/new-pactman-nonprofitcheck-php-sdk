@@ -1,0 +1,70 @@
+name: release
+
+# Packagist builds a release from the git tag itself — there is no artifact to
+# upload, unlike npm or PyPI. This workflow is the gate in front of that: it
+# verifies the tag before the release is announced, then asks Packagist to
+# update so the version appears immediately instead of on the next poll.
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    # Optional: create an environment of this name in repo settings to require a
+    # manual approval before anything is published. Delete if not wanted.
+    environment: packagist-publish
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: curl, json
+          coverage: none
+          tools: composer:v2
+
+      - name: Install
+        run: composer update --no-interaction --no-progress --prefer-stable
+
+      - name: Fail if the tag and src/Version.php disagree
+        if: github.event_name == 'push'
+        run: |
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          PKG_VERSION="$(php -r 'require "src/Version.php"; echo Pactman\NonprofitCheckPlus\Version::VERSION;')"
+          if [ "$TAG_VERSION" != "$PKG_VERSION" ]; then
+            echo "Tag says $TAG_VERSION but src/Version.php says $PKG_VERSION."
+            exit 1
+          fi
+
+      - name: Validate composer.json
+        run: composer validate --strict
+
+      - run: composer analyse
+      - run: composer test
+      - run: composer examples:smoke
+
+      # Packagist normally picks up a new tag from the GitHub webhook on its own.
+      # This nudges it so the release is available immediately, and fails loudly
+      # if the credentials have gone stale. Set PACKAGIST_USERNAME and
+      # PACKAGIST_TOKEN in repo secrets; delete this step to rely on the webhook.
+      - name: Ask Packagist to update
+        if: github.event_name == 'push'
+        env:
+          PACKAGIST_USERNAME: ${{ secrets.PACKAGIST_USERNAME }}
+          PACKAGIST_TOKEN: ${{ secrets.PACKAGIST_TOKEN }}
+        run: |
+          if [ -z "$PACKAGIST_TOKEN" ]; then
+            echo "No Packagist token set; relying on the GitHub webhook."
+            exit 0
+          fi
+          curl -sSf -XPOST \
+            -H 'content-type:application/json' \
+            "https://packagist.org/api/update-package?username=${PACKAGIST_USERNAME}&apiToken=${PACKAGIST_TOKEN}" \
+            -d '{"repository":{"url":"https://github.com/PledgeSoftwareTX/new-pactman-nonprofitcheck-php-sdk"}}'

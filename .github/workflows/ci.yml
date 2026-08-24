@@ -1,0 +1,64 @@
+name: ci
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php-version: ['8.2', '8.3', '8.4']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          extensions: curl, json
+          coverage: none
+          tools: composer:v2
+
+      # The lock file is not committed (this is a library), so cache the
+      # downloads rather than the resolution.
+      - name: Cache Composer downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/composer/files
+          key: composer-${{ matrix.php-version }}-${{ hashFiles('composer.json') }}
+          restore-keys: composer-${{ matrix.php-version }}-
+
+      - name: Install
+        run: composer update --no-interaction --no-progress --prefer-stable
+
+      - name: Static analysis
+        run: composer analyse
+
+      - name: Unit tests
+        run: composer test
+
+      - name: Run the documented examples against a mock server
+        run: composer examples:smoke
+
+  lowest:
+    # The floor of every version constraint, so a dependency's minimum is not a
+    # number nobody has ever run.
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: curl, json
+          coverage: none
+          tools: composer:v2
+
+      - run: composer update --no-interaction --no-progress --prefer-lowest --prefer-stable
+      - run: composer test
