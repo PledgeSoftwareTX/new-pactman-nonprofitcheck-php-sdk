@@ -1,5 +1,5 @@
 {
-  "name": "pactman/nonprofit-check-plus",
+  "name": "pactmandev/nonprofit-check-plus",
   "description": "Official PHP SDK for the Pactman Nonprofit Check Plus API — verify US nonprofits by EIN against IRS BMF, Publication 78, Automatic Revocation and OFAC data.",
   "type": "library",
   "keywords": [
