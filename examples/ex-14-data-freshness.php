@@ -29,8 +29,6 @@ const TIMESTAMP_FIELDS = [
     'report_date',              // when this response was generated
     'most_recent_bmf',          // when each list was last refreshed
     'most_recent_pub78',
-    'ofac_list_published_date',
-    'aroe_list_published_date',
 ];
 
 foreach ([Fixtures::EINS['publicCharity'], Fixtures::EINS['staleData']] as $ein) {

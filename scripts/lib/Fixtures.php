@@ -55,6 +55,8 @@ final class Fixtures
         'conflicted' => '521693387',
         /** Carries fields and an enum value this SDK version does not know about. */
         'futureFields' => '237324370',
+        /** Production's shape plus the source fields only newer deployments return. */
+        'pendingSourceFields' => '046001341',
         /** Well-formed, but no record exists. */
         'noRecord' => '999999999',
     ];
@@ -175,7 +177,6 @@ final class Fixtures
                     'zip' => '01103-1420',
                     'address_line1' => '19 HAMPDEN ST',
                     'address_line2' => null,
-                    'bmf_street_address' => '19 HAMPDEN ST',
                 ],
             ),
 
@@ -184,13 +185,10 @@ final class Fixtures
                 'Hartwell Family Example Foundation',
                 [
                     'organization_name_aka' => null,
-                    // A private foundation files a 990-PF, tracked in the PF field
-                    // below rather than in the general 990 filing requirement.
+                    // A private foundation files a 990-PF, so it carries no general
+                    // 990 filing requirement.
                     'filing_req_code' => '00',
-                    'pub78_source_org_type_1' => 'PF',
                     'organization_types' => [self::DEDUCTIBILITY_PRIVATE_FOUNDATION],
-                    'bmf_source_pf_filing_req_cd' => '1',
-                    'bmf_deductability_text' => 'Contributions are deductible',
                     'subsection_description' => '501(c)(3) Private Foundation',
                     'foundation_code' => '04',
                     'foundation_code_description' => 'Private non-operating foundation',
@@ -217,17 +215,14 @@ final class Fixtures
                     'zip' => null,
                     'pub78_city' => null,
                     'pub78_state' => null,
-                    'bmf_city' => null,
-                    'bmf_state' => null,
-                    'bmf_street_address' => null,
                     'group_exemption' => null,
                     'ruling_month' => null,
                     'ruling_year' => null,
                 ],
-                // No OFAC keys at all: the source was not reported for this
+                // No OFAC key at all: the source was not reported for this
                 // organization, which is not the same as a null status or a
                 // no-match result.
-                ['ofac_status', 'ofac_list_published_date'],
+                ['ofac_status'],
             ),
 
             // Every address component is present, and they contradict one another:
@@ -248,9 +243,6 @@ final class Fixtures
                     'zip' => '04856',
                     'pub78_city' => 'Rockport',
                     'pub78_state' => 'MA',
-                    'bmf_city' => 'ROCKPORT',
-                    'bmf_state' => 'MA',
-                    'bmf_street_address' => '12 SEA STREET',
                 ],
             ),
 
@@ -263,8 +255,6 @@ final class Fixtures
                     'organization_info_last_modified' => self::apiDate(700),
                     'most_recent_pub78' => self::apiDate(640),
                     'most_recent_bmf' => self::apiDate(610),
-                    'ofac_list_published_date' => self::apiDate(580),
-                    'aroe_list_published_date' => self::apiDate(560),
                 ],
             ),
 
@@ -277,7 +267,6 @@ final class Fixtures
                     'pub78_indicator' => null,
                     'organization_types' => null,
                     'bmf_status' => false,
-                    'bmf_deductability_text' => 'Contributions are not deductible',
                     'subsection_description' => '501(c)(3) Public Charity',
                     'exempt_status_code' => '25',
                     'revocation_code' => '01',
@@ -312,7 +301,6 @@ final class Fixtures
                 'Riverbend Example Coalition',
                 [
                     'ofac_status' => null,
-                    'ofac_list_published_date' => null,
                 ],
             ),
 
@@ -358,6 +346,30 @@ final class Fixtures
                         'matches' => 0,
                         'list_published_date' => self::apiDate(5),
                     ],
+                ],
+            ),
+
+            // A deployment running ahead of production. Every other fixture is the
+            // shape entities.pactman.org returns today; this one adds the ten source
+            // fields that are built but not yet released there. This package
+            // deliberately does not declare them (see Model\Nonprofit), so they
+            // exercise the path that keeps undeclared fields readable through get()
+            // instead of dropping them.
+            self::EINS['pendingSourceFields'] => self::publicCharity(
+                self::EINS['pendingSourceFields'],
+                'Ahead Of Production Example Fund',
+                [
+                    'organization_name_aka' => null,
+                    'pub78_source_org_type_1' => 'PC',
+                    'pub78_source_org_type_2' => null,
+                    'pub78_source_org_type_3' => null,
+                    'bmf_city' => 'WESTFIELD',
+                    'bmf_state' => 'MA',
+                    'bmf_street_address' => '50 LOWELL AVE APT 3B',
+                    'bmf_source_pf_filing_req_cd' => '0',
+                    'bmf_deductability_text' => 'Contributions are deductible',
+                    'ofac_list_published_date' => self::apiDate(5),
+                    'aroe_list_published_date' => self::apiDate(12),
                 ],
             ),
         ];
@@ -406,9 +418,6 @@ final class Fixtures
             'pub78_city' => 'Westfield',
             'pub78_state' => 'MA',
             'pub78_indicator' => '0',
-            'pub78_source_org_type_1' => 'PC',
-            'pub78_source_org_type_2' => null,
-            'pub78_source_org_type_3' => null,
             'organization_types' => [self::DEDUCTIBILITY_PUBLIC_CHARITY],
             'most_recent_pub78' => self::apiDate(26),
 
@@ -416,12 +425,7 @@ final class Fixtures
             'bmf_organization_name' => strtoupper($name),
             'bmf_ein' => $ein,
             'bmf_status' => true,
-            'bmf_city' => 'WESTFIELD',
-            'bmf_state' => 'MA',
-            'bmf_street_address' => '50 LOWELL AVE APT 3B',
             'bmf_subsection' => '03',
-            'bmf_source_pf_filing_req_cd' => '0',
-            'bmf_deductability_text' => 'Contributions are deductible',
             'most_recent_bmf' => self::apiDate(20),
             'subsection_description' => '501(c)(3) Public Charity',
             'foundation_code' => '10',
@@ -435,12 +439,10 @@ final class Fixtures
             'exempt_status_code' => '01',
 
             'ofac_status' => self::OFAC_NO_MATCH,
-            'ofac_list_published_date' => self::apiDate(5),
 
             'revocation_code' => null,
             'revocation_date' => null,
             'reinstatement_date' => null,
-            'aroe_list_published_date' => self::apiDate(12),
 
             'irs_bmf_pub78_conflict' => false,
             'report_date' => self::apiDate(0),

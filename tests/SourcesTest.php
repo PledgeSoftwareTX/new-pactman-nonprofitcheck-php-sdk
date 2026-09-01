@@ -64,8 +64,6 @@ final class SourcesTest extends TestCase
             'revocation_code' => 'A',
             'revocation_date' => '5/15/2024 12:00:00 AM',
             'reinstatement_date' => null,
-            'aroe_list_published_date' => '1/8/2026 12:00:00 AM',
-            'ofac_list_published_date' => '2/2/2026 12:00:00 AM',
         ]);
 
         $aroe = Sources::aroe($nonprofit);
@@ -75,11 +73,9 @@ final class SourcesTest extends TestCase
         self::assertSame('A', $aroe->revocation_code);
         self::assertSame('5/15/2024 12:00:00 AM', $aroe->revocation_date);
         self::assertNull($aroe->reinstatement_date);
-        self::assertSame('1/8/2026 12:00:00 AM', $aroe->list_published_date);
 
         self::assertNotNull($ofac);
         self::assertStringContainsString('NOT included', (string) $ofac->status);
-        self::assertSame('2/2/2026 12:00:00 AM', $ofac->list_published_date);
     }
 
     public function testReturnsNullOnlyWhenTheSourceWasNotReturnedAtAll(): void

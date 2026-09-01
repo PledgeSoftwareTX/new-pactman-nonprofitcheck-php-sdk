@@ -688,17 +688,15 @@ if ($bmf === null) {
 } else {
     $bmf->status;  // one source's answer to one question — there is no isExempt() here
     $bmf->exempt_status_code;
-    $bmf->deductability_text;
     $bmf->most_recent;
 
-    $bmf->organization_name; $bmf->ein; $bmf->street_address;
-    $bmf->city; $bmf->state; $bmf->church_message;
+    $bmf->organization_name; $bmf->ein; $bmf->church_message;
     $bmf->subsection; $bmf->subsection_description;
     $bmf->ruling_month; $bmf->ruling_year; $bmf->group_exemption;
     $bmf->foundation_code; $bmf->foundation_code_description;
     $bmf->foundation_type_code; $bmf->foundation_type_description;
     $bmf->foundation_509a_status;
-    $bmf->filing_req_code; $bmf->pf_filing_req_cd;
+    $bmf->filing_req_code;
 }
 
 // Reading the BMF in isolation is how a revoked or sanctioned organization
@@ -716,7 +714,6 @@ $pub78?->verified;  // true | false | null
 $pub78?->indicator;
 $pub78?->church_message;
 $pub78?->most_recent;
-$pub78?->source_org_type_1;  // …_2, …_3
 
 foreach ($nonprofit->organizationTypes() as $entry) {
     $entry['deductibility_status_description'];
@@ -752,7 +749,7 @@ $action = match (true) {
 // What you keep is what you can explain later. Store the source fields, the
 // request identifier and the time you looked — not just the verdict.
 const AUDITED = [
-    'revocation_code', 'revocation_date', 'reinstatement_date', 'aroe_list_published_date',
+    'revocation_code', 'revocation_date', 'reinstatement_date',
     'bmf_status',      // revocation shows up in the other sources too
     'pub78_verified',
 ];
@@ -884,13 +881,12 @@ $classificationPanel = [
     'foundation_code' => $bmf?->foundation_code_description,
     'foundation_type' => $bmf?->foundation_type_description,
     'status_509a' => $bmf?->foundation_509a_status,
-    'deductibility' => $bmf?->deductability_text,
     'entries' => $nonprofit->organizationTypes(),
 ];
 
 // A private foundation grantee is not disqualified — it is routed differently,
 // because expenditure responsibility and the deductibility limit both change.
-$isPrivateFoundation = $bmf?->foundation_type_code === 'pf' || $bmf?->pf_filing_req_cd === '1';
+$isPrivateFoundation = $bmf?->foundation_type_code === 'pf';
 ```
 
 #### EX-13 — Filing and exemption metadata
@@ -946,8 +942,6 @@ const TIMESTAMP_FIELDS = [
     'report_date',        // when this response was generated
     'most_recent_bmf',    // when each list was last refreshed
     'most_recent_pub78',
-    'ofac_list_published_date',
-    'aroe_list_published_date',
 ];
 
 $ages = [];
@@ -1375,7 +1369,7 @@ foreach ($recommendations as $recommendation) {
 
     // A private foundation grantee is not disqualified. It changes the path:
     // expenditure responsibility applies, and the deductibility limit differs.
-    $isPrivateFoundation = $bmf?->foundation_type_code === 'pf' || $bmf?->pf_filing_req_cd === '1';
+    $isPrivateFoundation = $bmf?->foundation_type_code === 'pf';
 
     $decision = match (true) {
         $aroe?->revocation_date !== null => 'decline — exemption revoked',

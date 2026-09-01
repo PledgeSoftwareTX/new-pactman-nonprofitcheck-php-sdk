@@ -32,9 +32,6 @@ final class Sources
         'state' => 'pub78_state',
         'indicator' => 'pub78_indicator',
         'church_message' => 'pub78_church_message',
-        'source_org_type_1' => 'pub78_source_org_type_1',
-        'source_org_type_2' => 'pub78_source_org_type_2',
-        'source_org_type_3' => 'pub78_source_org_type_3',
         'organization_types' => 'organization_types',
         'most_recent' => 'most_recent_pub78',
     ];
@@ -44,9 +41,6 @@ final class Sources
         'status' => 'bmf_status',
         'organization_name' => 'bmf_organization_name',
         'ein' => 'bmf_ein',
-        'city' => 'bmf_city',
-        'state' => 'bmf_state',
-        'street_address' => 'bmf_street_address',
         'church_message' => 'bmf_church_message',
         'subsection' => 'bmf_subsection',
         'subsection_description' => 'subsection_description',
@@ -60,8 +54,6 @@ final class Sources
         'group_exemption' => 'group_exemption',
         'exempt_status_code' => 'exempt_status_code',
         'filing_req_code' => 'filing_req_code',
-        'pf_filing_req_cd' => 'bmf_source_pf_filing_req_cd',
-        'deductability_text' => 'bmf_deductability_text',
         'most_recent' => 'most_recent_bmf',
     ];
 
@@ -70,13 +62,11 @@ final class Sources
         'revocation_code' => 'revocation_code',
         'revocation_date' => 'revocation_date',
         'reinstatement_date' => 'reinstatement_date',
-        'list_published_date' => 'aroe_list_published_date',
     ];
 
     /** @var array<string, string> */
     private const OFAC_FIELDS = [
         'status' => 'ofac_status',
-        'list_published_date' => 'ofac_list_published_date',
     ];
 
     /** Publication 78 findings, or `null` if the API returned none. */

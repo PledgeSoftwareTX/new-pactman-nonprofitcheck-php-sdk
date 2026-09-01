@@ -40,7 +40,6 @@ foreach ([Fixtures::EINS['publicCharity'], Fixtures::EINS['privateFoundation']] 
         'foundation_code' => $bmf?->get('foundation_code_description'),
         'foundation_type' => $bmf?->get('foundation_type_description'),
         'status_509a' => $bmf?->get('foundation_509a_status'),
-        'deductibility' => $bmf?->get('deductability_text'),
     ];
 
     foreach ($panel as $label => $value) {
@@ -60,8 +59,7 @@ foreach ([Fixtures::EINS['publicCharity'], Fixtures::EINS['privateFoundation']] 
     // A private foundation grantee is not disqualified — it is routed
     // differently, because expenditure responsibility and the deductibility
     // limit both change.
-    $isPrivateFoundation = $bmf?->get('foundation_type_code') === 'pf'
-        || $bmf?->get('pf_filing_req_cd') === '1';
+    $isPrivateFoundation = $bmf?->get('foundation_type_code') === 'pf';
 
     Output::field('private foundation', $isPrivateFoundation);
     Output::field('grant path', $isPrivateFoundation ? 'expenditure responsibility review' : 'standard');

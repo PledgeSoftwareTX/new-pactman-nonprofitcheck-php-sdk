@@ -50,8 +50,7 @@ foreach ($recommendations as $recommendation) {
 
     // A private foundation grantee is not disqualified. It changes the path:
     // expenditure responsibility applies, and the deductibility limit differs.
-    $isPrivateFoundation = $bmf?->get('foundation_type_code') === 'pf'
-        || $bmf?->get('pf_filing_req_cd') === '1';
+    $isPrivateFoundation = $bmf?->get('foundation_type_code') === 'pf';
 
     $limitations = [];
 

@@ -28,11 +28,6 @@ const FILING_REQUIREMENTS = [
     '02' => '990 - Required to file Form 990-N',
 ];
 
-const PF_FILING_REQUIREMENTS = [
-    '0' => 'No 990-PF return',
-    '1' => '990-PF return',
-];
-
 /**
  * A documented table with an explicit unknown fallback.
  *
@@ -74,12 +69,9 @@ foreach ([Fixtures::EINS['publicCharity'], Fixtures::EINS['privateFoundation'], 
     Output::heading(Output::text($nonprofit?->get('organization_name')));
 
     $filing = describe(FILING_REQUIREMENTS, $bmf, 'filing_req_code');
-    $pfFiling = describe(PF_FILING_REQUIREMENTS, $bmf, 'pf_filing_req_cd');
 
     Output::field('filing_req_code', $filing['code']);
     Output::field('  → ' . ($filing['known'] ? 'known' : 'UNKNOWN'), $filing['display']);
-    Output::field('pf_filing_req_cd', $pfFiling['code']);
-    Output::field('  → ' . ($pfFiling['known'] ? 'known' : 'UNKNOWN'), $pfFiling['display']);
 
     // Codes the API already describes for you: read its description, do not
     // shadow it with a local table that will drift.

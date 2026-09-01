@@ -37,9 +37,6 @@ Output::displayField($pub78, 'verified');
 Output::displayField($pub78, 'indicator');
 Output::displayField($pub78, 'church_message');
 Output::displayField($pub78, 'most_recent');
-Output::displayField($pub78, 'source_org_type_1');
-Output::displayField($pub78, 'source_org_type_2');
-Output::displayField($pub78, 'source_org_type_3');
 
 Output::heading('Deductibility entries');
 

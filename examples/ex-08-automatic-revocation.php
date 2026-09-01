@@ -41,7 +41,7 @@ Output::displayField($nonprofit, 'ein');
 
 Output::heading('Automatic Revocation of Exemption');
 
-foreach (['revocation_code', 'revocation_date', 'reinstatement_date', 'list_published_date'] as $field) {
+foreach (['revocation_code', 'revocation_date', 'reinstatement_date'] as $field) {
     Output::displayField($aroe ?? $nonprofit, $field);
 }
 
@@ -56,7 +56,6 @@ $action = match (true) {
 Output::heading('The other sources agree');
 Output::displayField($nonprofit, 'bmf_status');
 Output::displayField($nonprofit, 'pub78_verified');
-Output::displayField($nonprofit, 'bmf_deductability_text');
 
 Output::heading('Decision');
 Output::field('revoked', $revoked);
@@ -68,7 +67,6 @@ const AUDITED = [
     'revocation_code',
     'revocation_date',
     'reinstatement_date',
-    'aroe_list_published_date',
     'bmf_status',      // revocation shows up in the other sources too
     'pub78_verified',
 ];

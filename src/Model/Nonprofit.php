@@ -17,6 +17,14 @@ namespace Pactman\NonprofitCheckPlus\Model;
  * apart. Fields introduced by a newer API version than this SDK knows about are
  * readable through {@see DataObject::get()}.
  *
+ * Declared here is what the production API returns. Some deployments serve
+ * additional source fields — the BMF address (`bmf_city`, `bmf_state`,
+ * `bmf_street_address`), `bmf_source_pf_filing_req_cd`, `bmf_deductability_text`,
+ * `pub78_source_org_type_1..3`, `ofac_list_published_date` and
+ * `aroe_list_published_date`. They are not declared because production does not
+ * return them; when it does, they stay readable through {@see DataObject::get()},
+ * and this package will declare them in a release of its own.
+ *
  * @property-read string|null $pactman_org_url Public Pactman profile URL for the organization.
  * @property-read string|null $organization_info_last_modified
  * @property-read string|null $ein
@@ -36,21 +44,13 @@ namespace Pactman\NonprofitCheckPlus\Model;
  * @property-read string|null $pub78_city
  * @property-read string|null $pub78_state
  * @property-read string|null $pub78_indicator
- * @property-read string|null $pub78_source_org_type_1
- * @property-read string|null $pub78_source_org_type_2
- * @property-read string|null $pub78_source_org_type_3
  * @property-read list<array<string, mixed>|null>|null $organization_types Publication 78 deductibility entries.
  * @property-read string|null $most_recent_pub78
  * @property-read string|null $bmf_church_message
  * @property-read string|null $bmf_organization_name
  * @property-read string|null $bmf_ein
  * @property-read bool|null $bmf_status
- * @property-read string|null $bmf_city
- * @property-read string|null $bmf_state
- * @property-read string|null $bmf_street_address
  * @property-read string|null $bmf_subsection
- * @property-read string|null $bmf_source_pf_filing_req_cd
- * @property-read string|null $bmf_deductability_text
  * @property-read string|null $most_recent_bmf
  * @property-read string|null $subsection_description
  * @property-read string|null $foundation_code
@@ -63,11 +63,9 @@ namespace Pactman\NonprofitCheckPlus\Model;
  * @property-read string|null $group_exemption
  * @property-read string|null $exempt_status_code
  * @property-read string|null $ofac_status OFAC SDN finding. Prose, not a flag — see below.
- * @property-read string|null $ofac_list_published_date
  * @property-read string|null $revocation_code
  * @property-read string|null $revocation_date
  * @property-read string|null $reinstatement_date
- * @property-read string|null $aroe_list_published_date
  * @property-read bool|null $irs_bmf_pub78_conflict True when the IRS BMF and Publication 78 records disagree.
  * @property-read string|null $report_date
  */

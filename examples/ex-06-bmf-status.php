@@ -39,12 +39,11 @@ if ($bmf === null) {
 Output::heading('Status');
 Output::displayField($bmf, 'status');
 Output::displayField($bmf, 'exempt_status_code');
-Output::displayField($bmf, 'deductability_text');
 Output::displayField($bmf, 'most_recent');
 
 Output::heading('Identity as the BMF holds it');
 
-foreach (['organization_name', 'ein', 'street_address', 'city', 'state', 'church_message'] as $field) {
+foreach (['organization_name', 'ein', 'church_message'] as $field) {
     Output::displayField($bmf, $field);
 }
 
@@ -55,7 +54,7 @@ foreach ([
     'ruling_month', 'ruling_year', 'group_exemption',
     'foundation_code', 'foundation_code_description',
     'foundation_type_code', 'foundation_type_description', 'foundation_509a_status',
-    'filing_req_code', 'pf_filing_req_cd',
+    'filing_req_code',
 ] as $field) {
     Output::displayField($bmf, $field);
 }
