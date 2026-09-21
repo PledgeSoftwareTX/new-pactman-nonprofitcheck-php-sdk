@@ -139,19 +139,44 @@ final class Transport
      */
     private function buildHeaders(array $perRequest, bool $hasBody): array
     {
-        $headers = [...$this->config->defaultHeaders, ...$perRequest];
+        $headers = [];
+
+        foreach ([$this->config->defaultHeaders, $perRequest] as $source) {
+            foreach ($source as $name => $value) {
+                self::setHeader($headers, $name, $value);
+            }
+        }
 
         // Set last so neither the client defaults nor a per-request header can
-        // displace the credential or misdeclare the payload.
-        $headers['Accept'] = 'application/json';
-        $headers['User-Agent'] = $this->config->userAgent;
-        $headers['Authorization'] = ($this->credential)();
+        // displace the credential or misdeclare the payload, whatever its case.
+        self::setHeader($headers, 'Accept', 'application/json');
+        self::setHeader($headers, 'User-Agent', $this->config->userAgent);
+        self::setHeader($headers, 'Authorization', ($this->credential)());
 
         if ($hasBody) {
-            $headers['Content-Type'] = 'application/json';
+            self::setHeader($headers, 'Content-Type', 'application/json');
         }
 
         return $headers;
+    }
+
+    /**
+     * Sets a header, replacing any spelling of the same name already present.
+     *
+     * Header names are case-insensitive, so `authorization` and `Authorization`
+     * are one header. Without this, both would be sent.
+     *
+     * @param array<string, string> $headers
+     */
+    private static function setHeader(array &$headers, string $name, string $value): void
+    {
+        foreach (array_keys($headers) as $existing) {
+            if (strcasecmp((string) $existing, $name) === 0) {
+                unset($headers[$existing]);
+            }
+        }
+
+        $headers[$name] = $value;
     }
 
     /** Spaces requests when `maxRequestsPerSecond` is configured. */
@@ -244,7 +269,8 @@ final class Transport
         if (is_numeric($trimmed)) {
             $seconds = (float) $trimmed;
 
-            return $seconds >= 0 ? $seconds : null;
+            // `1e400` is numeric and overflows to INF, which no wait can honour.
+            return is_finite($seconds) && $seconds >= 0 ? $seconds : null;
         }
 
         $timestamp = strtotime($trimmed);

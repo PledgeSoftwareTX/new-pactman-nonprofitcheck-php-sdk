@@ -9,11 +9,13 @@ use Pactman\NonprofitCheckPlus\Exception\NetworkException;
 use Pactman\NonprofitCheckPlus\Exception\NotFoundException;
 use Pactman\NonprofitCheckPlus\Exception\RateLimitException;
 use Pactman\NonprofitCheckPlus\Exception\ServerException;
+use Pactman\NonprofitCheckPlus\Http\HttpResponse;
 use Pactman\NonprofitCheckPlus\Http\Transport;
 use Pactman\NonprofitCheckPlus\Tests\Support\Clock;
 use Pactman\NonprofitCheckPlus\Tests\Support\FakeHttpClient;
 use Pactman\NonprofitCheckPlus\Tests\Support\Fixtures;
 use Pactman\NonprofitCheckPlus\Tests\Support\Stub;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 final class RetryTest extends TestCase
@@ -203,6 +205,29 @@ final class RetryTest extends TestCase
         $policy = new RetryOptions(initialDelay: 0.5, jitter: false);
 
         self::assertSame(0.5, Transport::computeRetryDelay(1, $policy, -5.0));
+    }
+
+    public function testReadsRetryAfterGivenAsAnHttpDate(): void
+    {
+        $response = new HttpResponse(429, ['Retry-After' => 'Wed, 21 Oct 2026 07:28:00 GMT'], '');
+        $now = (float) strtotime('Wed, 21 Oct 2026 07:27:30 GMT');
+
+        self::assertSame(30.0, Transport::readRetryAfter($response, $now));
+    }
+
+    /** @return iterable<string, array{string}> */
+    public static function unparseableRetryAfter(): iterable
+    {
+        yield 'text' => ['not-a-date'];
+        yield 'blank' => ['   '];
+        yield 'negative' => ['-5'];
+        yield 'overflows to infinity' => ['1e400'];
+    }
+
+    #[DataProvider('unparseableRetryAfter')]
+    public function testIgnoresAnUnparseableRetryAfter(string $value): void
+    {
+        self::assertNull(Transport::readRetryAfter(new HttpResponse(429, ['Retry-After' => $value], '')));
     }
 
     public function testThrottlesToTheConfiguredRate(): void

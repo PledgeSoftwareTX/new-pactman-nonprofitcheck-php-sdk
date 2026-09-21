@@ -76,6 +76,36 @@ final class ContractDiffTest extends TestCase
         );
     }
 
+    public function testCountsAnAbsentOptionalFieldInsteadOfFailingIt(): void
+    {
+        $observed = self::success();
+        unset($observed['data.ein']);
+
+        $result = Contract::coverageDiff(self::expected(), $observed, ['data' => true]);
+
+        self::assertSame([], $result['changes']);
+        self::assertSame(1, $result['optionalAbsent']);
+    }
+
+    public function testRequiresOnlyTheEnvelopeStructureOfEachResponse(): void
+    {
+        /** @var array<string, mixed> $contract */
+        $contract = json_decode(
+            (string) file_get_contents(__DIR__ . '/../src/response-contract.json'),
+            true,
+            flags: JSON_THROW_ON_ERROR,
+        );
+
+        self::assertSame(
+            ['data', 'errors[]', 'errors[].eins[]', 'data.organization_types[]'],
+            array_keys(Contract::requiredPathsOf($contract, 'single')),
+        );
+        self::assertSame(
+            ['data', 'errors[]', 'errors[].eins[]', 'data[].organization_types[]', 'data[]'],
+            array_keys(Contract::requiredPathsOf($contract, 'bulk')),
+        );
+    }
+
     public function testFailsAFieldTheApiInvented(): void
     {
         $observed = [...self::success(), 'data.new_field' => 'text'];

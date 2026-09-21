@@ -285,7 +285,7 @@ foreach (['single', 'bulk'] as $kind) {
 
     // Fields the API sent that the package does not predict, and fields it
     // predicts that the API did not send. Both directions fail.
-    $fields = Contract::coverageDiff($expected, $signature);
+    $fields = Contract::coverageDiff($expected, $signature, Contract::requiredPathsOf($contract, $kind));
 
     $report(
         $kind,
@@ -293,9 +293,10 @@ foreach (['single', 'bulk'] as $kind) {
         $fields['changes'] === [] ? 'pass' : 'fail',
         $fields['changes'] === []
             ? sprintf(
-                '%d paths, all predicted · %d predicted under a null or empty parent',
+                '%d paths, all predicted · %d under a null or empty parent · %d optional and not sent',
                 $paths,
                 $fields['unreachable'],
+                $fields['optionalAbsent'],
             )
             : sprintf(
                 'the live %s response and this package disagree on which fields exist — %s',

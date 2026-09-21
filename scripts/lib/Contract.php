@@ -542,12 +542,17 @@ final class Contract
      * A container that vanished is reported once, at its shallowest path: a
      * `data` that stopped arriving is one failure, not fifty-nine.
      *
+     * A field the model documents as optional is permitted to be absent, so with
+     * `$required` given, an absent path it does not list is counted rather than
+     * failed. Without it every predicted path is treated as required.
+     *
      * @param array<string, string> $expected
      * @param array<string, string> $observed
+     * @param array<string, true>|null $required from {@see requiredPathsOf()}
      *
-     * @return array{changes: list<array{kind: string, path: string, token?: string, from?: string, to?: string}>, unreachable: int}
+     * @return array{changes: list<array{kind: string, path: string, token?: string, from?: string, to?: string}>, unreachable: int, optionalAbsent: int}
      */
-    public static function coverageDiff(array $expected, array $observed): array
+    public static function coverageDiff(array $expected, array $observed, ?array $required = null): array
     {
         $changes = [];
 
@@ -559,6 +564,7 @@ final class Contract
 
         $missing = array_diff_key($expected, $observed);
         $unreachable = 0;
+        $optionalAbsent = 0;
 
         foreach ($missing as $path => $token) {
             if (self::unreachableIn($path, $observed)) {
@@ -573,10 +579,67 @@ final class Contract
                 }
             }
 
+            if ($required !== null && !array_key_exists($path, $required)) {
+                ++$optionalAbsent;
+
+                continue;
+            }
+
             $changes[] = ['kind' => 'removed', 'path' => $path, 'token' => $token];
         }
 
-        return ['changes' => self::sortChanges($changes), 'unreachable' => $unreachable];
+        return [
+            'changes' => self::sortChanges($changes),
+            'unreachable' => $unreachable,
+            'optionalAbsent' => $optionalAbsent,
+        ];
+    }
+
+    /**
+     * The paths a response must carry: the structural ones every envelope has,
+     * and whatever the contract's `required` block lists.
+     *
+     * Optionality is the promise the package actually makes. A field documented
+     * as possibly absent says "this may not be here", so a response without it
+     * keeps the promise, and failing on its absence tests the deployment's
+     * current data rather than the package's contract.
+     *
+     * @param array<string, mixed> $contract
+     *
+     * @return array<string, true>
+     */
+    public static function requiredPathsOf(array $contract, string $kind): array
+    {
+        $single = $kind === 'single';
+        $prefix = $single ? 'data.' : 'data[].';
+
+        /** @var array<string, list<string>> $required */
+        $required = is_array($contract['required'] ?? null) ? $contract['required'] : [];
+
+        // The shape of the envelope itself, which is not optional in any response.
+        $paths = ['data', 'errors[]', 'errors[].eins[]', "{$prefix}organization_types[]"];
+
+        if (!$single) {
+            $paths[] = 'data[]';
+        }
+
+        foreach ($required['envelope'] ?? [] as $field) {
+            $paths[] = $field;
+        }
+
+        foreach ($required['errorDetail'] ?? [] as $field) {
+            $paths[] = "errors[].{$field}";
+        }
+
+        foreach ($required['nonprofit'] ?? [] as $field) {
+            $paths[] = "{$prefix}{$field}";
+        }
+
+        foreach ($required['organizationType'] ?? [] as $field) {
+            $paths[] = "{$prefix}organization_types[].{$field}";
+        }
+
+        return array_fill_keys($paths, true);
     }
 
     /**

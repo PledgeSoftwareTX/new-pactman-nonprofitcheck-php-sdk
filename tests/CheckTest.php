@@ -182,6 +182,25 @@ final class CheckTest extends TestCase
         self::assertSame('trace-1', $http->lastRequest()->headers['X-Trace-Id']);
     }
 
+    public function testADifferentlyCasedHeaderCannotRideAlongsideTheOwnedOnes(): void
+    {
+        $http = FakeHttpClient::always(new Stub(body: Fixtures::envelope([Fixtures::nonprofit()])));
+
+        $client = Fixtures::client($http, defaultHeaders: [
+            'authorization' => 'Bearer not-your-key',
+            'accept' => 'text/plain',
+        ]);
+        $client->nonprofits->checkBulk(['411787097'], headers: ['content-type' => 'text/plain']);
+
+        $headers = $http->lastRequest()->headers;
+        $names = array_map('strtolower', array_keys($headers));
+
+        self::assertSame(array_values(array_unique($names)), $names);
+        self::assertSame('Bearer ' . Fixtures::API_KEY, $headers['Authorization']);
+        self::assertSame('application/json', $headers['Accept']);
+        self::assertSame('application/json', $headers['Content-Type']);
+    }
+
     public function testDefaultHeadersAreSentOnEveryRequest(): void
     {
         $http = FakeHttpClient::always(new Stub(body: Fixtures::envelope(Fixtures::nonprofit())));
