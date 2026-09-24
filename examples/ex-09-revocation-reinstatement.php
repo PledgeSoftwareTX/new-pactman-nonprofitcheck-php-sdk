@@ -35,7 +35,6 @@ Output::heading(Output::text($nonprofit?->get('organization_name')));
 Output::displayField($aroe, 'revocation_code');
 Output::displayField($aroe, 'revocation_date');
 Output::displayField($aroe, 'reinstatement_date');
-Output::displayField($aroe, 'list_published_date');
 
 $revokedAt = ApiDate::parse($aroe->get('revocation_date'));
 $reinstatedAt = ApiDate::parse($aroe->get('reinstatement_date'));
